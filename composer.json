@@ -1,0 +1,7 @@
+{
+    "require": {
+        "dyrynda/laravel-model-uuid": "^5.0",
+        "whichbrowser/parser": "^2.0",
+        "ua-parser/uap-php": "^3.9"
+    }
+}
