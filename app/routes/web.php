@@ -15,19 +15,25 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Ramsey\Uuid\Uuid;
 use UAParser\Parser;
+use App\maxMindAdapter;
+
+App::singleton(\App\AdapterInterface::class, function () {
+
+    $reader = new \GeoIp2\Database\Reader(resource_path() . '/GeoLite2/GeoLite2-City.mmdb');
+
+//    return new \App\maxMindAdapter($reader);
+    return new \App\IpApiAdapter();
+
+});
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/r/{code}', function ($code) {
+Route::get('/r/{code}', function ($code, \App\AdapterInterface $adapter) {
 
     $link = \App\Link::where('short_code', $code)->get()->first();
 
-    $reader = new \GeoIp2\Database\Reader(resource_path() . '/GeoLite2/GeoLite2-City.mmdb');
-
-//    $city = null;
-//    $country = null;
 //
 //    $result = file_get_contents('http://ip-api.com/json' . env('DEFAULT_IP_ADDR'));
 //
@@ -42,11 +48,7 @@ Route::get('/r/{code}', function ($code) {
 //    }
 
 
-    try {
-        $record = $reader->city(request()->ip());
-    } catch (\GeoIp2\Exception\AddressNotFoundException $exception) {
-        $record = $reader->city(env('DEFAULT_IP_ADDR'));
-    }
+    $adapter->parse(\request()->ip());
 
     $browser = new WhichBrowser\Parser(getallheaders());
     $ua = request()->userAgent();
@@ -65,8 +67,8 @@ Route::get('/r/{code}', function ($code) {
     $statistic->engine = $engine;
     $statistic->os = $os;
     $statistic->device = $device;
-    $statistic->city = $record->city->name ? $record->city->name : 'Odesa';
-    $statistic->country = $record->country->isoCode ? $record->country->isoCode : 'Ukraine';
+    $statistic->city = $adapter->getCityName();
+    $statistic->country = $adapter->getCountryCode();
     $statistic->save();
 
 
