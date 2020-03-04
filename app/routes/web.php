@@ -11,6 +11,8 @@
 |
 */
 require_once '../vendor/autoload.php';
+
+use App\ParseUaAdapterInterface;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Ramsey\Uuid\Uuid;
@@ -23,14 +25,20 @@ App::singleton(\App\AdapterInterface::class, function () {
 
 //    return new \App\maxMindAdapter($reader);
     return new \App\IpApiAdapter();
-
 });
+
+App::singleton(\App\ParseUaAdapterInterface::class, function () {
+
+    return new \App\WhichBrowserAdapter();
+});
+
+
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/r/{code}', function ($code, \App\AdapterInterface $adapter) {
+Route::get('/r/{code}', function ($code, \App\AdapterInterface $adapter, \App\ParseUaAdapterInterface $browser ) {
 
     $link = \App\Link::where('short_code', $code)->get()->first();
 
@@ -50,13 +58,15 @@ Route::get('/r/{code}', function ($code, \App\AdapterInterface $adapter) {
 
     $adapter->parse(\request()->ip());
 
-    $browser = new WhichBrowser\Parser(getallheaders());
+//    $browser = new WhichBrowser\Parser(getallheaders());
     $ua = request()->userAgent();
     $parser = Parser::create();
-    $browser_name = $browser->browser->name;
-    $engine = $browser->engine->toString();
-    $os = $browser->os->name;
-    $device = $browser->device->type;
+    $browser_name = $browser->getBrowserType();
+    $engine = $browser->getEngine();
+    $os = $browser->getOs();
+    $device = $browser->getDevice();
+
+
 
     $statistic = new \App\Statistic();
     $statistic->id = \Ramsey\Uuid\Uuid::uuid4()->toString();
